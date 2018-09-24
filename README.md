@@ -1,1379 +1,895 @@
-{
- "cells": [
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Dataset Description\n",
-    "You are given a small dataset in a csv format of around 900 links. This dataset is divided in approximately\n",
-    "50%-50% portions in which the first portion contains links related to the TV show “Ra7em - رحیم ” series and the\n",
-    "other portion of links are not related to this series. (The CSV file has two columns, the first corresponds to links\n",
-    "column and the second corresponds to class of the link where 1 means related and 0 means not related)."
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 58,
-   "metadata": {
-    "collapsed": true
-   },
-   "outputs": [],
-   "source": [
-    "import pandas as pd\n",
-    "import numpy as np"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 59,
-   "metadata": {
-    "collapsed": true
-   },
-   "outputs": [],
-   "source": [
-    "df = pd.read_csv('Dataset.csv')"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 60,
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/html": [
-       "<div>\n",
-       "<style>\n",
-       "    .dataframe thead tr:only-child th {\n",
-       "        text-align: right;\n",
-       "    }\n",
-       "\n",
-       "    .dataframe thead th {\n",
-       "        text-align: left;\n",
-       "    }\n",
-       "\n",
-       "    .dataframe tbody tr th {\n",
-       "        vertical-align: top;\n",
-       "    }\n",
-       "</style>\n",
-       "<table border=\"1\" class=\"dataframe\">\n",
-       "  <thead>\n",
-       "    <tr style=\"text-align: right;\">\n",
-       "      <th></th>\n",
-       "      <th>link</th>\n",
-       "      <th>class</th>\n",
-       "    </tr>\n",
-       "  </thead>\n",
-       "  <tbody>\n",
-       "    <tr>\n",
-       "      <th>0</th>\n",
-       "      <td>https://www.4helal.tv/video/series-Rahim-01.html</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>1</th>\n",
-       "      <td>http://krmalk.tv/video/watch.php?vid=8e54b1d51</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>2</th>\n",
-       "      <td>https://www.mzarita.tv/video/watch.php?vid=dfa...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>3</th>\n",
-       "      <td>https://www.mzarita.tv/video/watch.php?vid=157...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>4</th>\n",
-       "      <td>https://www.mzarita.tv/video/watch.php?vid=c78...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "  </tbody>\n",
-       "</table>\n",
-       "</div>"
-      ],
-      "text/plain": [
-       "                                                link  class\n",
-       "0   https://www.4helal.tv/video/series-Rahim-01.html      1\n",
-       "1     http://krmalk.tv/video/watch.php?vid=8e54b1d51      1\n",
-       "2  https://www.mzarita.tv/video/watch.php?vid=dfa...      1\n",
-       "3  https://www.mzarita.tv/video/watch.php?vid=157...      1\n",
-       "4  https://www.mzarita.tv/video/watch.php?vid=c78...      1"
-      ]
-     },
-     "execution_count": 60,
-     "metadata": {},
-     "output_type": "execute_result"
+
+## Dataset Description
+You are given a small dataset in a csv format of around 900 links. This dataset is divided in approximately
+50%-50% portions in which the first portion contains links related to the TV show “Ra7em - رحیم ” series and the
+other portion of links are not related to this series. (The CSV file has two columns, the first corresponds to links
+column and the second corresponds to class of the link where 1 means related and 0 means not related).
+
+
+```python
+import pandas as pd
+import numpy as np
+```
+
+
+```python
+df = pd.read_csv('Dataset.csv')
+```
+
+
+```python
+df.head()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
     }
-   ],
-   "source": [
-    "df.head()"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Feature Selection (Web Scraping)\n",
-    "You are required to extract some features from each link and its web page source that can be used to classify\n",
-    "the link either being related to this series or not."
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 61,
-   "metadata": {
-    "collapsed": true
-   },
-   "outputs": [],
-   "source": [
-    "result = []\n",
-    "where_to_start_again = -1\n",
-    "indexes_dropped = []"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "import re\n",
-    "import requests\n",
-    "from bs4 import BeautifulSoup\n",
-    "should_restart = True\n",
-    "while should_restart:    \n",
-    "    should_restart = False\n",
-    "    for index, row in df[where_to_start_again+1:].iterrows():\n",
-    "        where_to_start_again = index\n",
-    "        try:\n",
-    "            html = requests.get(row['link'])\n",
-    "            headers = {'User-Agent':'Mozilla/5.0'}\n",
-    "            soup = BeautifulSoup(html.text, \"html.parser\")\n",
-    "            data = soup.findAll(text=True)\n",
-    "\n",
-    "            def visible(element):\n",
-    "                if element.parent.name in ['style', 'script', '[document]', 'head', 'title']:\n",
-    "                    return False\n",
-    "                elif re.match('<!--.*-->', str(element.encode('utf-8'))):\n",
-    "                    return False\n",
-    "                return True\n",
-    "            print(index, row['link'])\n",
-    "            result.append([list(filter(visible, data)),row['class']])\n",
-    "        except:\n",
-    "            indexes_dropped.append(where_to_start_again)\n",
-    "            should_restart = True\n",
-    "            break\n",
-    "        "
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 63,
-   "metadata": {
-    "collapsed": true
-   },
-   "outputs": [],
-   "source": [
-    "scraped_df = pd.DataFrame(result, columns=['text', 'class'])"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Feature Engineering"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 64,
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/html": [
-       "<div>\n",
-       "<style>\n",
-       "    .dataframe thead tr:only-child th {\n",
-       "        text-align: right;\n",
-       "    }\n",
-       "\n",
-       "    .dataframe thead th {\n",
-       "        text-align: left;\n",
-       "    }\n",
-       "\n",
-       "    .dataframe tbody tr th {\n",
-       "        vertical-align: top;\n",
-       "    }\n",
-       "</style>\n",
-       "<table border=\"1\" class=\"dataframe\">\n",
-       "  <thead>\n",
-       "    <tr style=\"text-align: right;\">\n",
-       "      <th></th>\n",
-       "      <th>text</th>\n",
-       "      <th>class</th>\n",
-       "    </tr>\n",
-       "  </thead>\n",
-       "  <tbody>\n",
-       "    <tr>\n",
-       "      <th>0</th>\n",
-       "      <td>[\n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", ...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>1</th>\n",
-       "      <td>[\n",
-       ", &lt;![endif], \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", [if lt IE ...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>2</th>\n",
-       "      <td>[\n",
-       ", &lt;![endif], \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       "...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>3</th>\n",
-       "      <td>[\n",
-       ", &lt;![endif], \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       "...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>4</th>\n",
-       "      <td>[\n",
-       ", &lt;![endif], \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       "...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "  </tbody>\n",
-       "</table>\n",
-       "</div>"
-      ],
-      "text/plain": [
-       "                                                text  class\n",
-       "0  [\n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", ...      1\n",
-       "1  [\n",
-       ", <![endif], \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", [if lt IE ...      1\n",
-       "2  [\n",
-       ", <![endif], \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       "...      1\n",
-       "3  [\n",
-       ", <![endif], \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       "...      1\n",
-       "4  [\n",
-       ", <![endif], \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       ", \n",
-       "...      1"
-      ]
-     },
-     "execution_count": 64,
-     "metadata": {},
-     "output_type": "execute_result"
+
+    .dataframe thead th {
+        text-align: left;
     }
-   ],
-   "source": [
-    "scraped_df.head()"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "Single text for each cell join"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 65,
-   "metadata": {
-    "collapsed": true
-   },
-   "outputs": [],
-   "source": [
-    "scraped_df.text = [' '.join(x) for x in scraped_df.text]"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 66,
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/html": [
-       "<div>\n",
-       "<style>\n",
-       "    .dataframe thead tr:only-child th {\n",
-       "        text-align: right;\n",
-       "    }\n",
-       "\n",
-       "    .dataframe thead th {\n",
-       "        text-align: left;\n",
-       "    }\n",
-       "\n",
-       "    .dataframe tbody tr th {\n",
-       "        vertical-align: top;\n",
-       "    }\n",
-       "</style>\n",
-       "<table border=\"1\" class=\"dataframe\">\n",
-       "  <thead>\n",
-       "    <tr style=\"text-align: right;\">\n",
-       "      <th></th>\n",
-       "      <th>text</th>\n",
-       "      <th>class</th>\n",
-       "    </tr>\n",
-       "  </thead>\n",
-       "  <tbody>\n",
-       "    <tr>\n",
-       "      <th>0</th>\n",
-       "      <td>\\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>1</th>\n",
-       "      <td>\\n &lt;![endif] \\n \\n \\n \\n \\n \\n \\n [if lt IE 9]...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>2</th>\n",
-       "      <td>\\n &lt;![endif] \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n ...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>3</th>\n",
-       "      <td>\\n &lt;![endif] \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n ...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>4</th>\n",
-       "      <td>\\n &lt;![endif] \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n ...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "  </tbody>\n",
-       "</table>\n",
-       "</div>"
-      ],
-      "text/plain": [
-       "                                                text  class\n",
-       "0  \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\...      1\n",
-       "1  \\n <![endif] \\n \\n \\n \\n \\n \\n \\n [if lt IE 9]...      1\n",
-       "2  \\n <![endif] \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n ...      1\n",
-       "3  \\n <![endif] \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n ...      1\n",
-       "4  \\n <![endif] \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n \\n ...      1"
-      ]
-     },
-     "execution_count": 66,
-     "metadata": {},
-     "output_type": "execute_result"
+
+    .dataframe tbody tr th {
+        vertical-align: top;
     }
-   ],
-   "source": [
-    "scraped_df.head()"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "Remove non-arabic characters"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 67,
-   "metadata": {
-    "collapsed": true
-   },
-   "outputs": [],
-   "source": [
-    "import re\n",
-    "scraped_df.text = [' '.join(re.sub(r'[^\\u0600-\\u06FF]', ' ', x).split()) for x in scraped_df.text]"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 68,
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/html": [
-       "<div>\n",
-       "<style>\n",
-       "    .dataframe thead tr:only-child th {\n",
-       "        text-align: right;\n",
-       "    }\n",
-       "\n",
-       "    .dataframe thead th {\n",
-       "        text-align: left;\n",
-       "    }\n",
-       "\n",
-       "    .dataframe tbody tr th {\n",
-       "        vertical-align: top;\n",
-       "    }\n",
-       "</style>\n",
-       "<table border=\"1\" class=\"dataframe\">\n",
-       "  <thead>\n",
-       "    <tr style=\"text-align: right;\">\n",
-       "      <th></th>\n",
-       "      <th>text</th>\n",
-       "      <th>class</th>\n",
-       "    </tr>\n",
-       "  </thead>\n",
-       "  <tbody>\n",
-       "    <tr>\n",
-       "      <th>0</th>\n",
-       "      <td>تسجيل الدخول افلام اجنبية انواع الافلام سلاسل ...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>1</th>\n",
-       "      <td>تسجيل دخول تسجيل دخول كلمة المرور تسجيل دخول ن...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>2</th>\n",
-       "      <td>الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>3</th>\n",
-       "      <td>الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>4</th>\n",
-       "      <td>الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "  </tbody>\n",
-       "</table>\n",
-       "</div>"
-      ],
-      "text/plain": [
-       "                                                text  class\n",
-       "0  تسجيل الدخول افلام اجنبية انواع الافلام سلاسل ...      1\n",
-       "1  تسجيل دخول تسجيل دخول كلمة المرور تسجيل دخول ن...      1\n",
-       "2  الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...      1\n",
-       "3  الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...      1\n",
-       "4  الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...      1"
-      ]
-     },
-     "execution_count": 68,
-     "metadata": {},
-     "output_type": "execute_result"
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>link</th>
+      <th>class</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>https://www.4helal.tv/video/series-Rahim-01.html</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>http://krmalk.tv/video/watch.php?vid=8e54b1d51</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>https://www.mzarita.tv/video/watch.php?vid=dfa...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>https://www.mzarita.tv/video/watch.php?vid=157...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>https://www.mzarita.tv/video/watch.php?vid=c78...</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+## Feature Selection (Web Scraping)
+You are required to extract some features from each link and its web page source that can be used to classify
+the link either being related to this series or not.
+
+
+```python
+result = []
+where_to_start_again = -1
+indexes_dropped = []
+```
+
+
+```python
+import re
+import requests
+from bs4 import BeautifulSoup
+should_restart = True
+while should_restart:    
+    should_restart = False
+    for index, row in df[where_to_start_again+1:].iterrows():
+        where_to_start_again = index
+        try:
+            html = requests.get(row['link'])
+            headers = {'User-Agent':'Mozilla/5.0'}
+            soup = BeautifulSoup(html.text, "html.parser")
+            data = soup.findAll(text=True)
+
+            def visible(element):
+                if element.parent.name in ['style', 'script', '[document]', 'head', 'title']:
+                    return False
+                elif re.match('<!--.*-->', str(element.encode('utf-8'))):
+                    return False
+                return True
+            print(index, row['link'])
+            result.append([list(filter(visible, data)),row['class']])
+        except:
+            indexes_dropped.append(where_to_start_again)
+            should_restart = True
+            break
+        
+```
+
+
+```python
+scraped_df = pd.DataFrame(result, columns=['text', 'class'])
+```
+
+## Feature Engineering
+
+
+```python
+scraped_df.head()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
     }
-   ],
-   "source": [
-    "scraped_df.head()"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "Removing special characters"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 69,
-   "metadata": {
-    "collapsed": true
-   },
-   "outputs": [],
-   "source": [
-    "scraped_df.text = [x.replace('؟','').replace('،','').replace('؛','').replace(',','').replace('ـ','') for x in scraped_df.text]"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 70,
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/html": [
-       "<div>\n",
-       "<style>\n",
-       "    .dataframe thead tr:only-child th {\n",
-       "        text-align: right;\n",
-       "    }\n",
-       "\n",
-       "    .dataframe thead th {\n",
-       "        text-align: left;\n",
-       "    }\n",
-       "\n",
-       "    .dataframe tbody tr th {\n",
-       "        vertical-align: top;\n",
-       "    }\n",
-       "</style>\n",
-       "<table border=\"1\" class=\"dataframe\">\n",
-       "  <thead>\n",
-       "    <tr style=\"text-align: right;\">\n",
-       "      <th></th>\n",
-       "      <th>text</th>\n",
-       "      <th>class</th>\n",
-       "    </tr>\n",
-       "  </thead>\n",
-       "  <tbody>\n",
-       "    <tr>\n",
-       "      <th>0</th>\n",
-       "      <td>تسجيل الدخول افلام اجنبية انواع الافلام سلاسل ...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>1</th>\n",
-       "      <td>تسجيل دخول تسجيل دخول كلمة المرور تسجيل دخول ن...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>2</th>\n",
-       "      <td>الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>3</th>\n",
-       "      <td>الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>4</th>\n",
-       "      <td>الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "  </tbody>\n",
-       "</table>\n",
-       "</div>"
-      ],
-      "text/plain": [
-       "                                                text  class\n",
-       "0  تسجيل الدخول افلام اجنبية انواع الافلام سلاسل ...      1\n",
-       "1  تسجيل دخول تسجيل دخول كلمة المرور تسجيل دخول ن...      1\n",
-       "2  الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...      1\n",
-       "3  الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...      1\n",
-       "4  الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...      1"
-      ]
-     },
-     "execution_count": 70,
-     "metadata": {},
-     "output_type": "execute_result"
+
+    .dataframe thead th {
+        text-align: left;
     }
-   ],
-   "source": [
-    "scraped_df.head()"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "### Removing Arabic stop-words\n",
-    "* Using nltk arabic stopwords corpus\n",
-    "* Filtering stop-words helps preventing redundant features\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 71,
-   "metadata": {},
-   "outputs": [
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "[nltk_data] Downloading package stopwords to\n",
-      "[nltk_data]     C:\\Users\\amoat\\AppData\\Roaming\\nltk_data...\n",
-      "[nltk_data]   Package stopwords is already up-to-date!\n"
-     ]
-    },
-    {
-     "data": {
-      "text/plain": [
-       "True"
-      ]
-     },
-     "execution_count": 71,
-     "metadata": {},
-     "output_type": "execute_result"
+
+    .dataframe tbody tr th {
+        vertical-align: top;
     }
-   ],
-   "source": [
-    "import nltk\n",
-    "from nltk.corpus import stopwords\n",
-    "nltk.download('stopwords')"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 72,
-   "metadata": {
-    "collapsed": true
-   },
-   "outputs": [],
-   "source": [
-    "arabic_stopwords = list(set(nltk.corpus.stopwords.words(\"arabic\")))\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 73,
-   "metadata": {
-    "collapsed": true
-   },
-   "outputs": [],
-   "source": [
-    "def remove_stop_words(text):\n",
-    "    filtered_word_list = text #make a copy of the word_list\n",
-    "    for word in text: # iterate over word_list\n",
-    "        if word in arabic_stopwords: \n",
-    "            filtered_word_list.remove(word) # remove word from filtered_word_list if it is a stopword\n",
-    "    return filtered_word_list"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 74,
-   "metadata": {
-    "collapsed": true
-   },
-   "outputs": [],
-   "source": [
-    "scraped_df.text = [remove_stop_words(x) for x in scraped_df.text]"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 75,
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/html": [
-       "<div>\n",
-       "<style>\n",
-       "    .dataframe thead tr:only-child th {\n",
-       "        text-align: right;\n",
-       "    }\n",
-       "\n",
-       "    .dataframe thead th {\n",
-       "        text-align: left;\n",
-       "    }\n",
-       "\n",
-       "    .dataframe tbody tr th {\n",
-       "        vertical-align: top;\n",
-       "    }\n",
-       "</style>\n",
-       "<table border=\"1\" class=\"dataframe\">\n",
-       "  <thead>\n",
-       "    <tr style=\"text-align: right;\">\n",
-       "      <th></th>\n",
-       "      <th>text</th>\n",
-       "      <th>class</th>\n",
-       "    </tr>\n",
-       "  </thead>\n",
-       "  <tbody>\n",
-       "    <tr>\n",
-       "      <th>0</th>\n",
-       "      <td>تسجيل الدخول افلام اجنبية انواع الافلام سلاسل ...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>1</th>\n",
-       "      <td>تسجيل دخول تسجيل دخول كلمة المرور تسجيل دخول ن...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>2</th>\n",
-       "      <td>الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>3</th>\n",
-       "      <td>الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>4</th>\n",
-       "      <td>الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "  </tbody>\n",
-       "</table>\n",
-       "</div>"
-      ],
-      "text/plain": [
-       "                                                text  class\n",
-       "0  تسجيل الدخول افلام اجنبية انواع الافلام سلاسل ...      1\n",
-       "1  تسجيل دخول تسجيل دخول كلمة المرور تسجيل دخول ن...      1\n",
-       "2  الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...      1\n",
-       "3  الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...      1\n",
-       "4  الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...      1"
-      ]
-     },
-     "execution_count": 75,
-     "metadata": {},
-     "output_type": "execute_result"
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>text</th>
+      <th>class</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>[
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+, ...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>[
+, &lt;![endif], 
+, 
+, 
+, 
+, 
+, 
+, 
+, [if lt IE ...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>[
+, &lt;![endif], 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>[
+, &lt;![endif], 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>[
+, &lt;![endif], 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+, 
+...</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+Single text for each cell join
+
+
+```python
+scraped_df.text = [' '.join(x) for x in scraped_df.text]
+```
+
+
+```python
+scraped_df.head()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
     }
-   ],
-   "source": [
-    "scraped_df.head()"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 76,
-   "metadata": {
-    "collapsed": true
-   },
-   "outputs": [],
-   "source": [
-    "temp = scraped_df.copy()"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 77,
-   "metadata": {
-    "collapsed": true
-   },
-   "outputs": [],
-   "source": [
-    "scraped_df = temp"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "# Modeling Starts here"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "Very good term frequency inverse document frequency [tutorial](http://scikit-learn.org/stable/tutorial/text_analytics/working_with_text_data.html)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "### Count Vectorizer"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 78,
-   "metadata": {
-    "collapsed": true
-   },
-   "outputs": [],
-   "source": [
-    "X_train = scraped_df['text']\n",
-    "y_train = scraped_df['class']"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 79,
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/plain": [
-       "(885, 11825)"
-      ]
-     },
-     "execution_count": 79,
-     "metadata": {},
-     "output_type": "execute_result"
+
+    .dataframe thead th {
+        text-align: left;
     }
-   ],
-   "source": [
-    "from sklearn.feature_extraction.text import CountVectorizer\n",
-    "count_vect = CountVectorizer()\n",
-    "X_train_counts = count_vect.fit_transform(X_train)\n",
-    "X_train_counts.shape"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 80,
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/plain": [
-       "6148"
-      ]
-     },
-     "execution_count": 80,
-     "metadata": {},
-     "output_type": "execute_result"
+
+    .dataframe tbody tr th {
+        vertical-align: top;
     }
-   ],
-   "source": [
-    "count_vect.vocabulary_.get(u'رحيم')"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "### Term Frequencies"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 81,
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/plain": [
-       "(885, 11825)"
-      ]
-     },
-     "execution_count": 81,
-     "metadata": {},
-     "output_type": "execute_result"
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>text</th>
+      <th>class</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>\n &lt;![endif] \n \n \n \n \n \n \n [if lt IE 9]...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>\n &lt;![endif] \n \n \n \n \n \n \n \n \n \n \n ...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>\n &lt;![endif] \n \n \n \n \n \n \n \n \n \n \n ...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>\n &lt;![endif] \n \n \n \n \n \n \n \n \n \n \n ...</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+Remove non-arabic characters
+
+
+```python
+import re
+scraped_df.text = [' '.join(re.sub(r'[^\u0600-\u06FF]', ' ', x).split()) for x in scraped_df.text]
+```
+
+
+```python
+scraped_df.head()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
     }
-   ],
-   "source": [
-    "from sklearn.feature_extraction.text import TfidfTransformer\n",
-    "tfidf_transformer = TfidfTransformer()\n",
-    "X_train_tfidf = tfidf_transformer.fit_transform(X_train_counts)\n",
-    "X_train_tfidf.shape"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "### Model Selection"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 82,
-   "metadata": {},
-   "outputs": [
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "LR: 0.870110 (0.045558)\n",
-      "KNN: 0.742377 (0.201805)\n",
-      "CART: 0.893948 (0.048822)\n",
-      "NB: 0.805094 (0.117445)\n",
-      "SVM: 0.034065 (0.091057)\n",
-      "RF: 0.867901 (0.060408)\n"
-     ]
+
+    .dataframe thead th {
+        text-align: left;
     }
-   ],
-   "source": [
-    "from sklearn.linear_model import LogisticRegression\n",
-    "from sklearn.tree import DecisionTreeClassifier\n",
-    "from sklearn.ensemble import RandomForestClassifier\n",
-    "from sklearn.neighbors import KNeighborsClassifier\n",
-    "from sklearn.discriminant_analysis import LinearDiscriminantAnalysis\n",
-    "from sklearn.naive_bayes import GaussianNB\n",
-    "from sklearn.svm import SVC\n",
-    "\n",
-    "from sklearn.model_selection import train_test_split\n",
-    "from sklearn.model_selection import cross_val_score\n",
-    "from sklearn.model_selection import KFold\n",
-    "\n",
-    "models = [('LR', LogisticRegression()),\n",
-    "         ('KNN', KNeighborsClassifier()),\n",
-    "         ('CART', DecisionTreeClassifier()),\n",
-    "         ('NB', GaussianNB()),\n",
-    "         ('SVM', SVC()),\n",
-    "         ('RF', RandomForestClassifier())]\n",
-    "seed = 1073\n",
-    "results = []\n",
-    "names = []\n",
-    "scoring = 'accuracy'\n",
-    "X = X_train_tfidf.toarray()\n",
-    "Y = y_train\n",
-    "for name, model in models:\n",
-    "    kfold = KFold(n_splits=10, random_state=seed)\n",
-    "    cv_results = cross_val_score(model, X, Y, cv=kfold, scoring=scoring)\n",
-    "    results.append(cv_results)\n",
-    "    names.append(name)\n",
-    "    msg = \"%s: %f (%f)\" % (name, cv_results.mean(), cv_results.std())\n",
-    "    print(msg)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Random Forest is has good accuracy\n",
-    "* So let's setup a grid for its hyperparameters and see if we can acheive even better accuracy"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 83,
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/plain": [
-       "{'bootstrap': [True, False],\n",
-       " 'max_depth': [10, 26, 43, 60, 76, 93, 110, None],\n",
-       " 'max_features': ['auto', 'sqrt'],\n",
-       " 'min_samples_leaf': [1, 2, 4],\n",
-       " 'min_samples_split': [2, 5, 10],\n",
-       " 'n_estimators': [50, 100, 150, 200, 250]}"
-      ]
-     },
-     "execution_count": 83,
-     "metadata": {},
-     "output_type": "execute_result"
+
+    .dataframe tbody tr th {
+        vertical-align: top;
     }
-   ],
-   "source": [
-    "import pprint\n",
-    "from sklearn.model_selection import RandomizedSearchCV\n",
-    "# Number of trees in random forest\n",
-    "n_estimators = [int(x) for x in np.linspace(start = 50, stop = 250, num = 5)]\n",
-    "# Number of features to consider at every split\n",
-    "max_features = ['auto', 'sqrt']\n",
-    "# Maximum number of levels in tree\n",
-    "max_depth = [int(x) for x in np.linspace(10, 110, num = 7)]\n",
-    "max_depth.append(None)\n",
-    "# Minimum number of samples required to split a node\n",
-    "min_samples_split = [2, 5, 10]\n",
-    "# Minimum number of samples required at each leaf node\n",
-    "min_samples_leaf = [1, 2, 4]\n",
-    "# Method of selecting samples for training each tree\n",
-    "bootstrap = [True, False]\n",
-    "# Create the random grid\n",
-    "random_grid = {'n_estimators': n_estimators,\n",
-    "               'max_features': max_features,\n",
-    "               'max_depth': max_depth,\n",
-    "               'min_samples_split': min_samples_split,\n",
-    "               'min_samples_leaf': min_samples_leaf,\n",
-    "               'bootstrap': bootstrap}\n",
-    "random_grid"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 84,
-   "metadata": {},
-   "outputs": [
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "Fitting 5 folds for each of 100 candidates, totalling 500 fits\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "[Parallel(n_jobs=-1)]: Done  25 tasks      | elapsed:   22.4s\n",
-      "[Parallel(n_jobs=-1)]: Done 146 tasks      | elapsed:  1.7min\n",
-      "[Parallel(n_jobs=-1)]: Done 349 tasks      | elapsed:  4.3min\n",
-      "[Parallel(n_jobs=-1)]: Done 500 out of 500 | elapsed:  6.1min finished\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "RandomForestClassifier(bootstrap=False, class_weight=None, criterion='gini',\n",
-      "            max_depth=None, max_features='auto', max_leaf_nodes=None,\n",
-      "            min_impurity_decrease=0.0, min_impurity_split=None,\n",
-      "            min_samples_leaf=2, min_samples_split=10,\n",
-      "            min_weight_fraction_leaf=0.0, n_estimators=250, n_jobs=1,\n",
-      "            oob_score=False, random_state=None, verbose=0,\n",
-      "            warm_start=False)\n",
-      "0.900564971751\n",
-      "{'n_estimators': 250, 'min_samples_split': 10, 'min_samples_leaf': 2, 'max_features': 'auto', 'max_depth': None, 'bootstrap': False}\n"
-     ]
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>text</th>
+      <th>class</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>تسجيل الدخول افلام اجنبية انواع الافلام سلاسل ...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>تسجيل دخول تسجيل دخول كلمة المرور تسجيل دخول ن...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+Removing special characters
+
+
+```python
+scraped_df.text = [x.replace('؟','').replace('،','').replace('؛','').replace(',','').replace('ـ','') for x in scraped_df.text]
+```
+
+
+```python
+scraped_df.head()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
     }
-   ],
-   "source": [
-    "# Use the random grid to search for best hyperparameters\n",
-    "# First create the base model to tune\n",
-    "rf = RandomForestClassifier()\n",
-    "# Random search of parameters, using 3 fold cross validation, \n",
-    "# search across 100 different combinations, and use all available cores\n",
-    "rf_random = RandomizedSearchCV(estimator = rf, param_distributions = random_grid, n_iter = 100, cv = 5, verbose=2, random_state=42, n_jobs = -1)\n",
-    "# Fit the random search model\n",
-    "rf_random.fit(X, Y)\n",
-    "\n",
-    "print( rf_random.best_estimator_ )\n",
-    "print( rf_random.best_score_ )\n",
-    "print( rf_random.best_params_ )"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Final Training with best parameters"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "* The grid pumbed the cross-validation accuracy to 90%\n",
-    "* This grid could  go deeper and probably better accuracy but due to computional limitiations."
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 85,
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/plain": [
-       "RandomForestClassifier(bootstrap=False, class_weight=None, criterion='gini',\n",
-       "            max_depth=76, max_features='auto', max_leaf_nodes=None,\n",
-       "            min_impurity_decrease=0.0, min_impurity_split=None,\n",
-       "            min_samples_leaf=2, min_samples_split=10,\n",
-       "            min_weight_fraction_leaf=0.0, n_estimators=50, n_jobs=1,\n",
-       "            oob_score=False, random_state=None, verbose=0,\n",
-       "            warm_start=False)"
-      ]
-     },
-     "execution_count": 85,
-     "metadata": {},
-     "output_type": "execute_result"
+
+    .dataframe thead th {
+        text-align: left;
     }
-   ],
-   "source": [
-    "clf = RandomForestClassifier(bootstrap=False, class_weight=None, criterion='gini',\n",
-    "            max_depth=76, max_features='auto', max_leaf_nodes=None,\n",
-    "            min_impurity_decrease=0.0, min_impurity_split=None,\n",
-    "            min_samples_leaf=2, min_samples_split=10,\n",
-    "            min_weight_fraction_leaf=0.0, n_estimators=50, n_jobs=1,\n",
-    "            oob_score=False, random_state=None, verbose=0,\n",
-    "            warm_start=False)\n",
-    "clf.fit(X,Y)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "# Testing Pipeline"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 86,
-   "metadata": {
-    "collapsed": true
-   },
-   "outputs": [],
-   "source": [
-    "import random\n",
-    "urls_to_predict = df.sample(10)"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 87,
-   "metadata": {
-    "collapsed": true
-   },
-   "outputs": [],
-   "source": [
-    "def scrape_links_to_predict(urls_to_predict):    \n",
-    "    result = []\n",
-    "    for link in urls_to_predict:\n",
-    "        try:\n",
-    "            html = requests.get(link)\n",
-    "            headers = {'User-Agent':'Mozilla/5.0'}\n",
-    "            soup = BeautifulSoup(html.text, \"html.parser\")\n",
-    "            data = soup.findAll(text=True)\n",
-    "\n",
-    "            def visible(element):\n",
-    "                if element.parent.name in ['style', 'script', '[document]', 'head', 'title']:\n",
-    "                    return False\n",
-    "                elif re.match('<!--.*-->', str(element.encode('utf-8'))):\n",
-    "                    return False\n",
-    "                return True\n",
-    "            result.append(list(filter(visible, data)))\n",
-    "        except:\n",
-    "            print('Site won\\'t allow scraping this link: ', link)\n",
-    "            \n",
-    "            continue\n",
-    "    return result"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 88,
-   "metadata": {
-    "collapsed": true
-   },
-   "outputs": [],
-   "source": [
-    "def stemming_text(text_to_predict):\n",
-    "    text_to_predict = [' '.join(x) for x in text_to_predict]\n",
-    "    text_to_predict = [' '.join(re.sub(r'[^\\u0600-\\u06FF]', ' ', x).split()) for x in text_to_predict]\n",
-    "    text_to_predict = [x.replace('؟','').replace('،','').replace('؛','').replace(',','').replace('ـ','') for x in text_to_predict]\n",
-    "    text_to_predict = [remove_stop_words(x) for x in text_to_predict]\n",
-    "    return text_to_predict"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 89,
-   "metadata": {
-    "collapsed": true
-   },
-   "outputs": [],
-   "source": [
-    "def to_tfidf(text_to_predict):\n",
-    "    cv_to_predict = count_vect.transform(text_to_predict)\n",
-    "    tfidf_to_predict = tfidf_transformer.transform(cv_to_predict)\n",
-    "    return tfidf_to_predict"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 90,
-   "metadata": {
-    "collapsed": true
-   },
-   "outputs": [],
-   "source": [
-    "def prepare_to_predict(urls_to_predict):\n",
-    "    text_to_predict = stemming_text(scrape_links_to_predict(urls_to_predict))\n",
-    "    return to_tfidf(text_to_predict)"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 91,
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/plain": [
-       "array([1], dtype=int64)"
-      ]
-     },
-     "execution_count": 91,
-     "metadata": {},
-     "output_type": "execute_result"
+
+    .dataframe tbody tr th {
+        vertical-align: top;
     }
-   ],
-   "source": [
-    "clf.predict(prepare_to_predict(['https://www.youtube.com/watch?v=vnqz19l2N8M']))"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 92,
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/plain": [
-       "array([1], dtype=int64)"
-      ]
-     },
-     "execution_count": 92,
-     "metadata": {},
-     "output_type": "execute_result"
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>text</th>
+      <th>class</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>تسجيل الدخول افلام اجنبية انواع الافلام سلاسل ...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>تسجيل دخول تسجيل دخول كلمة المرور تسجيل دخول ن...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+### Removing Arabic stop-words
+* Using nltk arabic stopwords corpus
+* Filtering stop-words helps preventing redundant features
+
+
+
+```python
+import nltk
+from nltk.corpus import stopwords
+nltk.download('stopwords')
+```
+
+    [nltk_data] Downloading package stopwords to
+    [nltk_data]     C:\Users\amoat\AppData\Roaming\nltk_data...
+    [nltk_data]   Package stopwords is already up-to-date!
+    
+
+
+
+
+    True
+
+
+
+
+```python
+arabic_stopwords = list(set(nltk.corpus.stopwords.words("arabic")))
+
+```
+
+
+```python
+def remove_stop_words(text):
+    filtered_word_list = text #make a copy of the word_list
+    for word in text: # iterate over word_list
+        if word in arabic_stopwords: 
+            filtered_word_list.remove(word) # remove word from filtered_word_list if it is a stopword
+    return filtered_word_list
+```
+
+
+```python
+scraped_df.text = [remove_stop_words(x) for x in scraped_df.text]
+```
+
+
+```python
+scraped_df.head()
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
     }
-   ],
-   "source": [
-    "clf.predict(prepare_to_predict(['https://www.elcinema.com/work/1010439']))\n"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "elsayyad on YouTube"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 93,
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/plain": [
-       "array([0], dtype=int64)"
-      ]
-     },
-     "execution_count": 93,
-     "metadata": {},
-     "output_type": "execute_result"
+
+    .dataframe thead th {
+        text-align: left;
     }
-   ],
-   "source": [
-    "clf.predict(prepare_to_predict(['https://www.youtube.com/watch?v=6D8o3dGgQCE']))"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 94,
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/plain": [
-       "['tfidf.pkl']"
-      ]
-     },
-     "execution_count": 94,
-     "metadata": {},
-     "output_type": "execute_result"
+
+    .dataframe tbody tr th {
+        vertical-align: top;
     }
-   ],
-   "source": [
-    "from sklearn.externals import joblib\n",
-    "joblib.dump(clf, 'Ra7eem.pkl')\n",
-    "joblib.dump(count_vect, \"count_vect.pkl\")\n",
-    "joblib.dump(tfidf_transformer, \"tfidf.pkl\")"
-   ]
-  }
- ],
- "metadata": {
-  "kernelspec": {
-   "display_name": "Python 3",
-   "language": "python",
-   "name": "python3"
-  },
-  "language_info": {
-   "codemirror_mode": {
-    "name": "ipython",
-    "version": 3
-   },
-   "file_extension": ".py",
-   "mimetype": "text/x-python",
-   "name": "python",
-   "nbconvert_exporter": "python",
-   "pygments_lexer": "ipython3",
-   "version": "3.6.5"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 2
-}
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>text</th>
+      <th>class</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>تسجيل الدخول افلام اجنبية انواع الافلام سلاسل ...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>تسجيل دخول تسجيل دخول كلمة المرور تسجيل دخول ن...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>الصفحة الرئيسية الجديد افلام المزاريطة افلام ع...</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+temp = scraped_df.copy()
+```
+
+
+```python
+scraped_df = temp
+```
+
+# Modeling Starts here
+
+Very good term frequency inverse document frequency [tutorial](http://scikit-learn.org/stable/tutorial/text_analytics/working_with_text_data.html)
+
+### Count Vectorizer
+
+
+```python
+X_train = scraped_df['text']
+y_train = scraped_df['class']
+```
+
+
+```python
+from sklearn.feature_extraction.text import CountVectorizer
+count_vect = CountVectorizer()
+X_train_counts = count_vect.fit_transform(X_train)
+X_train_counts.shape
+```
+
+
+
+
+    (885, 11825)
+
+
+
+
+```python
+count_vect.vocabulary_.get(u'رحيم')
+```
+
+
+
+
+    6148
+
+
+
+### Term Frequencies
+
+
+```python
+from sklearn.feature_extraction.text import TfidfTransformer
+tfidf_transformer = TfidfTransformer()
+X_train_tfidf = tfidf_transformer.fit_transform(X_train_counts)
+X_train_tfidf.shape
+```
+
+
+
+
+    (885, 11825)
+
+
+
+### Model Selection
+
+
+```python
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import SVC
+
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import KFold
+
+models = [('LR', LogisticRegression()),
+         ('KNN', KNeighborsClassifier()),
+         ('CART', DecisionTreeClassifier()),
+         ('NB', GaussianNB()),
+         ('SVM', SVC()),
+         ('RF', RandomForestClassifier())]
+seed = 1073
+results = []
+names = []
+scoring = 'accuracy'
+X = X_train_tfidf.toarray()
+Y = y_train
+for name, model in models:
+    kfold = KFold(n_splits=10, random_state=seed)
+    cv_results = cross_val_score(model, X, Y, cv=kfold, scoring=scoring)
+    results.append(cv_results)
+    names.append(name)
+    msg = "%s: %f (%f)" % (name, cv_results.mean(), cv_results.std())
+    print(msg)
+```
+
+    LR: 0.870110 (0.045558)
+    KNN: 0.742377 (0.201805)
+    CART: 0.893948 (0.048822)
+    NB: 0.805094 (0.117445)
+    SVM: 0.034065 (0.091057)
+    RF: 0.867901 (0.060408)
+    
+
+## Random Forest is has good accuracy
+* So let's setup a grid for its hyperparameters and see if we can acheive even better accuracy
+
+
+```python
+import pprint
+from sklearn.model_selection import RandomizedSearchCV
+# Number of trees in random forest
+n_estimators = [int(x) for x in np.linspace(start = 50, stop = 250, num = 5)]
+# Number of features to consider at every split
+max_features = ['auto', 'sqrt']
+# Maximum number of levels in tree
+max_depth = [int(x) for x in np.linspace(10, 110, num = 7)]
+max_depth.append(None)
+# Minimum number of samples required to split a node
+min_samples_split = [2, 5, 10]
+# Minimum number of samples required at each leaf node
+min_samples_leaf = [1, 2, 4]
+# Method of selecting samples for training each tree
+bootstrap = [True, False]
+# Create the random grid
+random_grid = {'n_estimators': n_estimators,
+               'max_features': max_features,
+               'max_depth': max_depth,
+               'min_samples_split': min_samples_split,
+               'min_samples_leaf': min_samples_leaf,
+               'bootstrap': bootstrap}
+random_grid
+```
+
+
+
+
+    {'bootstrap': [True, False],
+     'max_depth': [10, 26, 43, 60, 76, 93, 110, None],
+     'max_features': ['auto', 'sqrt'],
+     'min_samples_leaf': [1, 2, 4],
+     'min_samples_split': [2, 5, 10],
+     'n_estimators': [50, 100, 150, 200, 250]}
+
+
+
+
+```python
+# Use the random grid to search for best hyperparameters
+# First create the base model to tune
+rf = RandomForestClassifier()
+# Random search of parameters, using 3 fold cross validation, 
+# search across 100 different combinations, and use all available cores
+rf_random = RandomizedSearchCV(estimator = rf, param_distributions = random_grid, n_iter = 100, cv = 5, verbose=2, random_state=42, n_jobs = -1)
+# Fit the random search model
+rf_random.fit(X, Y)
+
+print( rf_random.best_estimator_ )
+print( rf_random.best_score_ )
+print( rf_random.best_params_ )
+```
+
+    Fitting 5 folds for each of 100 candidates, totalling 500 fits
+    
+
+    [Parallel(n_jobs=-1)]: Done  25 tasks      | elapsed:   22.4s
+    [Parallel(n_jobs=-1)]: Done 146 tasks      | elapsed:  1.7min
+    [Parallel(n_jobs=-1)]: Done 349 tasks      | elapsed:  4.3min
+    [Parallel(n_jobs=-1)]: Done 500 out of 500 | elapsed:  6.1min finished
+    
+
+    RandomForestClassifier(bootstrap=False, class_weight=None, criterion='gini',
+                max_depth=None, max_features='auto', max_leaf_nodes=None,
+                min_impurity_decrease=0.0, min_impurity_split=None,
+                min_samples_leaf=2, min_samples_split=10,
+                min_weight_fraction_leaf=0.0, n_estimators=250, n_jobs=1,
+                oob_score=False, random_state=None, verbose=0,
+                warm_start=False)
+    0.900564971751
+    {'n_estimators': 250, 'min_samples_split': 10, 'min_samples_leaf': 2, 'max_features': 'auto', 'max_depth': None, 'bootstrap': False}
+    
+
+## Final Training with best parameters
+
+* The grid pumbed the cross-validation accuracy to 90%
+* This grid could  go deeper and probably better accuracy but due to computional limitiations.
+
+
+```python
+clf = RandomForestClassifier(bootstrap=False, class_weight=None, criterion='gini',
+            max_depth=76, max_features='auto', max_leaf_nodes=None,
+            min_impurity_decrease=0.0, min_impurity_split=None,
+            min_samples_leaf=2, min_samples_split=10,
+            min_weight_fraction_leaf=0.0, n_estimators=50, n_jobs=1,
+            oob_score=False, random_state=None, verbose=0,
+            warm_start=False)
+clf.fit(X,Y)
+```
+
+
+
+
+    RandomForestClassifier(bootstrap=False, class_weight=None, criterion='gini',
+                max_depth=76, max_features='auto', max_leaf_nodes=None,
+                min_impurity_decrease=0.0, min_impurity_split=None,
+                min_samples_leaf=2, min_samples_split=10,
+                min_weight_fraction_leaf=0.0, n_estimators=50, n_jobs=1,
+                oob_score=False, random_state=None, verbose=0,
+                warm_start=False)
+
+
+
+# Testing Pipeline
+
+
+```python
+import random
+urls_to_predict = df.sample(10)
+```
+
+
+```python
+def scrape_links_to_predict(urls_to_predict):    
+    result = []
+    for link in urls_to_predict:
+        try:
+            html = requests.get(link)
+            headers = {'User-Agent':'Mozilla/5.0'}
+            soup = BeautifulSoup(html.text, "html.parser")
+            data = soup.findAll(text=True)
+
+            def visible(element):
+                if element.parent.name in ['style', 'script', '[document]', 'head', 'title']:
+                    return False
+                elif re.match('<!--.*-->', str(element.encode('utf-8'))):
+                    return False
+                return True
+            result.append(list(filter(visible, data)))
+        except:
+            print('Site won\'t allow scraping this link: ', link)
+            
+            continue
+    return result
+```
+
+
+```python
+def stemming_text(text_to_predict):
+    text_to_predict = [' '.join(x) for x in text_to_predict]
+    text_to_predict = [' '.join(re.sub(r'[^\u0600-\u06FF]', ' ', x).split()) for x in text_to_predict]
+    text_to_predict = [x.replace('؟','').replace('،','').replace('؛','').replace(',','').replace('ـ','') for x in text_to_predict]
+    text_to_predict = [remove_stop_words(x) for x in text_to_predict]
+    return text_to_predict
+```
+
+
+```python
+def to_tfidf(text_to_predict):
+    cv_to_predict = count_vect.transform(text_to_predict)
+    tfidf_to_predict = tfidf_transformer.transform(cv_to_predict)
+    return tfidf_to_predict
+```
+
+
+```python
+def prepare_to_predict(urls_to_predict):
+    text_to_predict = stemming_text(scrape_links_to_predict(urls_to_predict))
+    return to_tfidf(text_to_predict)
+```
+
+
+```python
+clf.predict(prepare_to_predict(['https://www.youtube.com/watch?v=vnqz19l2N8M']))
+```
+
+
+
+
+    array([1], dtype=int64)
+
+
+
+
+```python
+clf.predict(prepare_to_predict(['https://www.elcinema.com/work/1010439']))
+
+```
+
+
+
+
+    array([1], dtype=int64)
+
+
+
+elsayyad on YouTube
+
+
+```python
+clf.predict(prepare_to_predict(['https://www.youtube.com/watch?v=6D8o3dGgQCE']))
+```
+
+
+
+
+    array([0], dtype=int64)
+
+
+
+
+```python
+from sklearn.externals import joblib
+joblib.dump(clf, 'Ra7eem.pkl')
+joblib.dump(count_vect, "count_vect.pkl")
+joblib.dump(tfidf_transformer, "tfidf.pkl")
+```
+
+
+
+
+    ['tfidf.pkl']
+
+
