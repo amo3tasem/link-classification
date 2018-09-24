@@ -1,3 +1,11 @@
+# Project Description
+This is a text classification model designed to take a link as an input, and return if this webpage topic is related to an Arabic series called ‘Ra7eem’ or not.
+
+## Dataset
+Dataset for this project is not mine, and I have no right to upload it here, but I'm sure this approach should work with other arabic annotated link-based datasets.
+
+## Exports
+I'v exported ```Ra7eem.pkl```, ```count_vect.pkl```, and ```tfidf.pkl``` if anyone wants to experiment with the model you can import them using sklear ```joblib``` feature.
 
 ## Dataset Description
 You are given a small dataset in a csv format of around 900 links. This dataset is divided in approximately
@@ -79,6 +87,7 @@ df.head()
 
 
 ## Feature Selection (Web Scraping)
+### For this task I decided to load all text from each webpage, as there's no regular structure
 You are required to extract some features from each link and its web page source that can be used to classify
 the link either being related to this series or not.
 
@@ -126,7 +135,7 @@ scraped_df = pd.DataFrame(result, columns=['text', 'class'])
 ```
 
 ## Feature Engineering
-
+### Text cleaning and stemming
 
 ```python
 scraped_df.head()
@@ -674,7 +683,7 @@ for name, model in models:
     RF: 0.867901 (0.060408)
     
 
-## Random Forest is has good accuracy
+## Random Forest had good accuracy
 * So let's setup a grid for its hyperparameters and see if we can acheive even better accuracy
 
 
