@@ -874,7 +874,7 @@ clf.predict(prepare_to_predict(['https://www.elcinema.com/work/1010439']))
 
 
 
-elsayyad on YouTube
+elsayyad on YouTube (test)
 
 
 ```python
@@ -888,17 +888,10 @@ clf.predict(prepare_to_predict(['https://www.youtube.com/watch?v=6D8o3dGgQCE']))
 
 
 
-
+Exporting transformations for reproducibility
 ```python
 from sklearn.externals import joblib
 joblib.dump(clf, 'Ra7eem.pkl')
 joblib.dump(count_vect, "count_vect.pkl")
 joblib.dump(tfidf_transformer, "tfidf.pkl")
 ```
-
-
-
-
-    ['tfidf.pkl']
-
-
